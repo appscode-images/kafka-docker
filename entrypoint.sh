@@ -64,7 +64,6 @@ delete_cluster_metadata() {
 AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
 sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $AUTHFILE
 sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $AUTHFILE
-cat $AUTHFILE
 #export KAFKA_OPTS="-Djava.security.auth.login.config=$AUTHFILE"
 export KAFKA_OPTS="$KAFKA_OPTS -Djava.security.auth.login.config=$AUTHFILE"
 
