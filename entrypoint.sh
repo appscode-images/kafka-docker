@@ -16,8 +16,6 @@ if [[ -f $temp_ssl_config ]]; then
   cp $temp_ssl_config /opt/kafka/config
 fi
 
-
-
 if [[ -f $temp_clientauth_config ]]; then
   cp $temp_clientauth_config /opt/kafka/config
 fi
