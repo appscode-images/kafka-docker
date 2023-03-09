@@ -125,14 +125,13 @@ rules:
 # KRaft overall related metrics
 # distinguish between always increasing COUNTER (total and max) and variable GAUGE (all others) metrics
   - pattern: "kafka.server<type=raft-metrics><>(.+-total|.+-max):"
-    name: kafka_server_raftmetrics_$1
+    name: kafka_server_raft_metrics_$1
     type: COUNTER
-  - pattern: "kafka.server<type=raft-metrics><>(.+):"
-    name: kafka_server_raftmetrics_$1
+  - pattern: "kafka.server<type=raft-metrics><>(.+): (.+)"
+    name: kafka_server_raft_metrics_$1
     type: GAUGE
-  - pattern: "kafka.server<type=raft-metrics,name=current-state><>(.+):"
-    name: kafka_server_raftmetrics_$1
-    type: GAUGE
+  - pattern: "kafka.server<type=raft-metrics><>(current-state): (.+)"
+    name: kafka_server_raft_metrics
   # KRaft "low level" channels related metrics
   # distinguish between always increasing COUNTER (total and max) and variable GAUGE (all others) metrics
   - pattern: "kafka.server<type=raft-channel-metrics><>(.+-total|.+-max):"
@@ -145,3 +144,10 @@ rules:
   - pattern: "kafka.server<type=broker-metadata-metrics><>(.+):"
     name: kafka_server_brokermetadatametrics_$1
     type: GAUGE
+  # controller event manager metrics
+  - pattern: "kafka.server<type=controller-channel-manager><>(.+): (.+)"
+    name: kafka_server_controller_event_manager_$1
+    type: GAUGE
+  - pattern: "kafka.server<type=controller-channel-manager><>(.+): (.+)"
+    name: kafka_server_controller_event_manager_$1
+    type: COUNTER
