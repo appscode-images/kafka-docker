@@ -8,8 +8,8 @@ ENV PATH=${PATH}:${HOME}/bin
 
 LABEL name="kafka" version=${KAFKA_VERSION}
 # https://archive.apache.org/dist/kafka contains all the kafka version binary
-RUN apt update \
- && apt install wget \
+RUN apt-get update \
+ && apt-get install wget \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
