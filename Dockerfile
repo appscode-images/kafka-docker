@@ -7,6 +7,9 @@ ENV HOME=/opt/kafka
 ENV PATH=${PATH}:${HOME}/bin
 
 LABEL name="kafka" version=${KAFKA_VERSION}
+LABEL org.opencontainers.image.source https://github.com/kubedb/kafka-docker
+
+
 # https://archive.apache.org/dist/kafka contains all the kafka version binary
 RUN apt-get update \
  && apt-get install wget \
