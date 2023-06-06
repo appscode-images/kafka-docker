@@ -17,7 +17,8 @@ RUN apt-get update \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
- && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+ && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+ && apt-get install kafkacat -y
 
 COPY ./entrypoint.sh /opt/kafka/config
 COPY ./kafka_server_jaas.conf /opt/kafka/config
