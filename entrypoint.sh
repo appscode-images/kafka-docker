@@ -138,13 +138,8 @@ delete_cluster_metadata() {
   if [[ -d "$metadata_log_dir/__cluster_metadata-0" ]]; then
      rm -rf $metadata_log_dir/meta.properties
   fi
-
-  if [[ ! -f "$log_dirs/cluster_id" ]]; then
-      echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
-  else
-      CLUSTER_ID=$(cat "$log_dirs"/cluster_id)
-  fi
-
+  # Add or replace cluster_id to log_dirs/cluster_id
+  echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
 }
 
 AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
