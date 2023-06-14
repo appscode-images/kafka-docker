@@ -138,6 +138,9 @@ delete_cluster_metadata() {
   if [[ -d "$metadata_log_dir/__cluster_metadata-0" ]]; then
      rm -rf $metadata_log_dir/meta.properties
   fi
+  if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
+     rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
+  fi
   # Add or replace cluster_id to log_dirs/cluster_id
   echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
 }
