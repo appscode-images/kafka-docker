@@ -17,9 +17,12 @@ RUN apt-get update \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
- && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+ && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+ && apt-get install kafkacat -y
+# ref: https://github.com/edenhill/kcat
 
 COPY ./entrypoint.sh /opt/kafka/config
+COPY ./merge_custom_config.sh /opt/kafka/config
 COPY ./kafka_server_jaas.conf /opt/kafka/config
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
@@ -28,6 +31,7 @@ ENV EXTRA_ARGS="$EXTRA_ARGS -javaagent:/opt/jmx_exporter/jmx_prometheus_javaagen
 ENV KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
 
 RUN ["chmod", "+x", "/opt/kafka/config/entrypoint.sh"]
+RUN ["chmod", "+x", "/opt/kafka/config/merge_custom_config.sh"]
 
 WORKDIR $HOME
 EXPOSE 9092 9093 29092
