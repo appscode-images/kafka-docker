@@ -1,5 +1,5 @@
 #!/bin/bash
-
+kafkaconfig_dir="/opt/kafka/config/kafkaconfig"
 operator_config="/opt/kafka/config/kafkaconfig/config.properties"
 ssl_config="/opt/kafka/config/kafkaconfig/ssl.properties"
 temp_operator_config="/opt/kafka/config/temp-config/config.properties"
@@ -8,93 +8,10 @@ temp_clientauth_config="/opt/kafka/config/temp-config/clientauth.properties"
 controller_config="/opt/kafka/config/kraft/controller.properties"
 broker_config="/opt/kafka/config/kraft/broker.properties"
 server_config="/opt/kafka/config/kraft/server.properties"
-custom_config_dir="/opt/kafka/config/custom-config"
-
-merge_custom_config() {
-
-    # Merge the custom config with the default config
-    echo "Merging custom config with default config"
-
-    MASTER_FILE="/opt/kafka/config/custom-config/config.properties"
-    SLAVE_FILE=$operator_config
-    OUTPUT_FILE="/opt/kafka/config/kafkaconfig/config.properties.merged"
-
-    if [[ ! -d "$custom_config_dir" ]]; then
-      echo "No custom configuration found"
-      return
-    fi
-    #ignore the following properties while merging
-    arr=("process.roles", "cluster.id", "node.id", "controller.quorum.voters",
-    "control.plane.listener.name", "listeners", "advertised.listeners")
-    # Delete the output file if exists
-    if [ -e $OUTPUT_FILE ] ; then
-        rm -rf "$OUTPUT_FILE"
-    fi
-    # Ensure files exist before attempting to merge
-    if [ ! -e $MASTER_FILE ] ; then
-        echo 'Unable to merge property files: MASTER_FILE doesn''t exist'
-        return
-    fi
-    if [ ! -e $SLAVE_FILE ] ; then
-        echo 'Unable to merge property files: SLAVE_FILE doesn''t exist'
-        return
-    fi
-    # Read property files into arrays
-    readarray MASTER_FILE_A < "$MASTER_FILE"
-    readarray SLAVE_FILE_A < "$SLAVE_FILE"
-    # Regex strings to check for values and
-    COMMENT_LINE_REGEX="[#*]"
-    HAS_VALUE_REGEX="[*=*]"
-    declare -A ALL_PROPERTIES
-    # All the master file property names and values will be preserved
-    for MASTER_FILE_LINE in "${MASTER_FILE_A[@]}"; do
-        MASTER_PROPERTY_NAME=`echo $MASTER_FILE_LINE | cut -d = -f1`
-        if [[ $(echo ${arr[@]} | fgrep -w $MASTER_PROPERTY_NAME) ]]; then
-            continue
-        else
-            # Only attempt to get the property value if it exists
-            if [[ $MASTER_FILE_LINE =~ $HAS_VALUE_REGEX ]]; then
-                MASTER_PROPERTY_VALUE=`echo $MASTER_FILE_LINE | cut -d = -f2-`
-            else
-                MASTER_PROPERTY_VALUE=''
-            fi
-            # Ignore the line if it begins with the # symbol as it is a comment
-            if ! [[ $MASTER_PROPERTY_NAME =~ $COMMENT_LINE_REGEX ]]; then
-                ALL_PROPERTIES[$MASTER_PROPERTY_NAME]=$MASTER_PROPERTY_VALUE
-            fi
-        fi
-    done
-    # Properties that are in the slave but not the master will be preserved
-    for SLAVE_FILE_LINE in "${SLAVE_FILE_A[@]}"; do
-        SLAVE_PROPERTY_NAME=`echo $SLAVE_FILE_LINE | cut -d = -f1`
-        # Only attempt to get the property value if it exists
-        if [[ $SLAVE_FILE_LINE =~ $HAS_VALUE_REGEX ]]; then
-            SLAVE_PROPERTY_VALUE=`echo $SLAVE_FILE_LINE | cut -d = -f2-`
-        else
-            SLAVE_PROPERTY_VALUE=''
-        fi
-        # If a slave property exists in the master, the master's value will be used preserved
-        if [ ! ${ALL_PROPERTIES[$SLAVE_PROPERTY_NAME]+_ } ]; then
-            # If the line begins with a # symbol it is a comment line and should be ignored
-            if ! [[ $SLAVE_PROPERTY_NAME =~ $COMMENT_LINE_REGEX ]]; then
-                ALL_PROPERTIES[$SLAVE_PROPERTY_NAME]=$SLAVE_PROPERTY_VALUE
-            fi
-        fi
-    done
-
-    for KEY in "${!ALL_PROPERTIES[@]}"; do
-        echo "$KEY=${ALL_PROPERTIES[$KEY]}" >> "$OUTPUT_FILE"
-    done
-    # move merge file to kafkaconfig directory
-    mv "$OUTPUT_FILE" "$operator_config"
-
-    echo "Merged custom config with default config"
-}
-
-
+custom_config_file="/opt/kafka/config/custom-config/config.properties"
 
 cp $temp_operator_config $operator_config
-merge_custom_config
+/opt/kafka/config/merge_custom_config.sh $custom_config_file $operator_config $kafkaconfig_dir/config.properties.merged
 
 if [[ -f $temp_ssl_config ]]; then
   cat $temp_ssl_config $operator_config > config.properties.updated
@@ -111,7 +28,6 @@ if [[ $KAFKA_PASSWORD != "" ]]; then
   sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $CLIENTAUTHFILE
   sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $CLIENTAUTHFILE
 fi
-
 
 while IFS='=' read -r key value
 do
@@ -135,9 +51,10 @@ delete_cluster_metadata() {
     rm -rf $log_dirs/$NODE_ID/meta.properties
   fi
 
-  if [[ -d "$metadata_log_dir/__cluster_metadata-0" ]]; then
+  if [ -e "$metadata_log_dir/meta.properties" ]; then
      rm -rf $metadata_log_dir/meta.properties
   fi
+  # Delete previously configured controller.quorum.voters file
   if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
      rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
   fi
