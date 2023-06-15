@@ -1,5 +1,5 @@
 #!/bin/bash
-
+kafkaconfig_dir="/opt/kafka/config/kafkaconfig"
 operator_config="/opt/kafka/config/kafkaconfig/config.properties"
 ssl_config="/opt/kafka/config/kafkaconfig/ssl.properties"
 temp_operator_config="/opt/kafka/config/temp-config/config.properties"
@@ -8,8 +8,11 @@ temp_clientauth_config="/opt/kafka/config/temp-config/clientauth.properties"
 controller_config="/opt/kafka/config/kraft/controller.properties"
 broker_config="/opt/kafka/config/kraft/broker.properties"
 server_config="/opt/kafka/config/kraft/server.properties"
+custom_config_file="/opt/kafka/config/custom-config/config.properties"
 
 cp $temp_operator_config $operator_config
+/opt/kafka/config/merge_custom_config.sh $custom_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+
 if [[ -f $temp_ssl_config ]]; then
   cat $temp_ssl_config $operator_config > config.properties.updated
   mv config.properties.updated $operator_config
@@ -25,7 +28,6 @@ if [[ $KAFKA_PASSWORD != "" ]]; then
   sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $CLIENTAUTHFILE
   sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $CLIENTAUTHFILE
 fi
-
 
 while IFS='=' read -r key value
 do
@@ -44,21 +46,19 @@ delete_cluster_metadata() {
   if [[ ! -d "$log_dirs/$NODE_ID" ]]; then
     mkdir -p "$log_dirs"/"$NODE_ID"
     echo "Created kafka data directory at "$log_dirs"/$NODE_ID"
-
   else
     echo "Deleting old metadata..."
     rm -rf $log_dirs/$NODE_ID/meta.properties
-    if [[ -d "$metadata_log_dir/__cluster_metadata-0" ]]; then
-       rm -rf $metadata_log_dir/meta.properties
-    fi
   fi
-
-  if [[ ! -f "$log_dirs/cluster_id" ]]; then
-      echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
-  else
-      CLUSTER_ID=$(cat "$log_dirs"/cluster_id)
+  if [ -e "$metadata_log_dir/meta.properties" ]; then
+     rm -rf $metadata_log_dir/meta.properties
   fi
-
+  # Delete previously configured controller.quorum.voters file
+  if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
+     rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
+  fi
+  # Add or replace cluster_id to log_dirs/cluster_id
+  echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
 }
 
 AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
