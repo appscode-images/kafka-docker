@@ -6,9 +6,6 @@ output_file=$3
 arr=("process.roles" "cluster.id" "node.id" "controller.quorum.voters"
 "control.plane.listener.name" "listeners" "advertised.listeners")
 # Ensure files exist before attempting to merge
-if [ ! -e $master_file ] ; then
-    return
-fi
 if [ ! -e $slave_file ] ; then
     echo 'Unable to merge custom configuration property files: $slave_file doesn''t exist'
     return
