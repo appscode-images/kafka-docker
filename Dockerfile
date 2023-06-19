@@ -21,8 +21,8 @@ RUN apt-get update \
  && apt-get install kafkacat -y
 # ref: https://github.com/edenhill/kcat
 
-COPY ./entrypoint.sh /opt/kafka/config
-COPY ./merge_custom_config.sh /opt/kafka/config
+COPY scripts/entrypoint.sh /opt/kafka/config
+COPY scripts/merge_custom_config.sh /opt/kafka/config
 COPY ./kafka_server_jaas.conf /opt/kafka/config
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
