@@ -13,12 +13,13 @@ broker_config_file="/opt/kafka/config/custom-config/broker.properties"
 controller_config_file="/opt/kafka/config/custom-config/controller.properties"
 
 cp $temp_operator_config $operator_config
-if [ -e $server_config_file ]; then
-  /opt/kafka/config/merge_custom_config.sh $server_config_file $operator_config $kafkaconfig_dir/config.properties.merged
-elif [ -e $broker_config_file ]; then
-  /opt/kafka/config/merge_custom_config.sh $broker_config_file $operator_config $kafkaconfig_dir/config.properties.merged
-else [ -e $controller_config_file]
+roles=$(grep process.roles $operator_config | cut -d'=' -f 2-)
+if [[ $roles = "controller" ]]; then
   /opt/kafka/config/merge_custom_config.sh $controller_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+elif [[ $roles = "broker" ]]; then
+  /opt/kafka/config/merge_custom_config.sh $broker_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+else [[ $roles = "controller,broker" ]]
+  /opt/kafka/config/merge_custom_config.sh $server_config_file $operator_config $kafkaconfig_dir/config.properties.merged
 fi
 
 if [[ -f $temp_ssl_config ]]; then
