@@ -8,10 +8,19 @@ temp_clientauth_config="/opt/kafka/config/temp-config/clientauth.properties"
 controller_config="/opt/kafka/config/kraft/controller.properties"
 broker_config="/opt/kafka/config/kraft/broker.properties"
 server_config="/opt/kafka/config/kraft/server.properties"
-custom_config_file="/opt/kafka/config/custom-config/config.properties"
+server_config_file="/opt/kafka/config/custom-config/server.properties"
+broker_config_file="/opt/kafka/config/custom-config/broker.properties"
+controller_config_file="/opt/kafka/config/custom-config/controller.properties"
 
 cp $temp_operator_config $operator_config
-/opt/kafka/config/merge_custom_config.sh $custom_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+roles=$(grep process.roles $operator_config | cut -d'=' -f 2-)
+if [[ $roles = "controller" ]]; then
+  /opt/kafka/config/merge_custom_config.sh $controller_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+elif [[ $roles = "broker" ]]; then
+  /opt/kafka/config/merge_custom_config.sh $broker_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+else [[ $roles = "controller,broker" ]]
+  /opt/kafka/config/merge_custom_config.sh $server_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+fi
 
 if [[ -f $temp_ssl_config ]]; then
   cat $temp_ssl_config $operator_config > config.properties.updated
