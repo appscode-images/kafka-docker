@@ -30,6 +30,12 @@ RUN wget -O /opt/jmx_exporter/jmx_prometheus_javaagent-0.17.2.jar https://repo1.
 ENV EXTRA_ARGS="$EXTRA_ARGS -javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent-0.17.2.jar=56790:/opt/jmx_exporter/jmx-exporter-config.yaml"
 ENV KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
 
+RUN groupadd -r -g 1001 kafka && \
+    useradd -m -d $HOME -s /bin/bash -u 1001 -r -g kafka kafka && \
+    chown -R kafka:kafka $HOME \
+
+USER kafka
+
 RUN ["chmod", "+x", "/opt/kafka/config/entrypoint.sh"]
 RUN ["chmod", "+x", "/opt/kafka/config/merge_custom_config.sh"]
 
