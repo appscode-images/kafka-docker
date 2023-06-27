@@ -53,22 +53,33 @@ delete_cluster_metadata() {
   NODE_ID=$1
   echo "Enter for metadata deleting node $NODE_ID"
   if [[ ! -d "$log_dirs/$NODE_ID" ]]; then
-    mkdir -p "$log_dirs"/"$NODE_ID"
+    sudo mkdir -p "$log_dirs"/"$NODE_ID"
     echo "Created kafka data directory at "$log_dirs"/$NODE_ID"
   else
     echo "Deleting old metadata..."
-    rm -rf $log_dirs/$NODE_ID/meta.properties
+    sudo rm -rf $log_dirs/$NODE_ID/meta.properties
+  fi
+  if [[ ! -d "$metadata_log_dir" ]]; then
+    sudo mkdir -p $metadata_log_dir
+    echo "Created kafka metadata directory at $metadata_log_dir"
   fi
 
+  # Give log_dirs access for kafka user
+  sudo chown -R kafka:kafka "$log_dirs"/"$NODE_ID"
+  # Give metadata_log_dirs acces for kafka user
+  sudo chown -R kafka:kafka "$metadata_log_dir"
+
   if [ -e "$metadata_log_dir/meta.properties" ]; then
-     rm -rf $metadata_log_dir/meta.properties
+     sudo rm -rf $metadata_log_dir/meta.properties
   fi
   # Delete previously configured controller.quorum.voters file
   if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
-     rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
+     sudo rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
   fi
   # Add or replace cluster_id to log_dirs/cluster_id
-  echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
+  sudo sh -c "echo '$CLUSTER_ID' > '$log_dirs'/cluster_id"
+  # no required password line delete from -> /etc/sudoers files
+  sudo sed -i '$d' /etc/sudoers
 }
 
 AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"

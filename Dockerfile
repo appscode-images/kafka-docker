@@ -11,15 +11,17 @@ LABEL org.opencontainers.image.source https://github.com/kubedb/kafka-docker
 
 
 # https://archive.apache.org/dist/kafka contains all the kafka version binary
+# ref: https://github.com/edenhill/kcat
 RUN apt-get update \
  && apt-get install wget \
+ && apt-get -y install sudo \
+ && echo "kafka ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers \
+ && apt-get -y install kafkacat \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
- && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
- && apt-get install kafkacat -y
-# ref: https://github.com/edenhill/kcat
+ && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 
 COPY scripts/entrypoint.sh /opt/kafka/config
 COPY scripts/merge_custom_config.sh /opt/kafka/config
@@ -32,7 +34,7 @@ ENV KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremot
 
 RUN groupadd -r -g 1001 kafka && \
     useradd -m -d $HOME -s /bin/bash -u 1001 -r -g kafka kafka && \
-    chown -R kafka:kafka $HOME \
+    chown -R kafka:kafka $HOME
 
 USER kafka
 
