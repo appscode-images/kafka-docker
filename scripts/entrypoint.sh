@@ -1,4 +1,5 @@
 #!/bin/bash
+
 kafkaconfig_dir="/opt/kafka/config/kafkaconfig"
 operator_config="/opt/kafka/config/kafkaconfig/config.properties"
 ssl_config="/opt/kafka/config/kafkaconfig/ssl.properties"
@@ -12,6 +13,7 @@ server_config_file="/opt/kafka/config/custom-config/server.properties"
 broker_config_file="/opt/kafka/config/custom-config/broker.properties"
 controller_config_file="/opt/kafka/config/custom-config/controller.properties"
 
+# merge custom config files with default ones
 cp $temp_operator_config $operator_config
 roles=$(grep process.roles $operator_config | cut -d'=' -f 2-)
 if [[ $roles = "controller" ]]; then
@@ -51,6 +53,8 @@ CONTROLLER_NODE_COUNT=${controller_count}
 
 delete_cluster_metadata() {
   NODE_ID=$1
+  # temporarily make kafka a sudo user
+  echo "kafka ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
   echo "Enter for metadata deleting node $NODE_ID"
   if [[ ! -d "$log_dirs/$NODE_ID" ]]; then
     sudo mkdir -p "$log_dirs"/"$NODE_ID"
