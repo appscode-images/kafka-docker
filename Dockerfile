@@ -12,17 +12,16 @@ LABEL org.opencontainers.image.source https://github.com/kubedb/kafka-docker
 
 # ref: https://archive.apache.org/dist/kafka contains all the kafka version binary
 # ref: https://github.com/edenhill/kcat used for installing kafkacat cli
+# Install sudo to give permission 'custom config directory, metadata directory' for kafka user
 RUN apt-get update \
- && apt-get install -y wget sudo \
- && apt-get -y install kafkacat \
+ && apt-get install -y wget sudo kafkacat \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 
-COPY scripts/entrypoint.sh /opt/kafka/config
-COPY scripts/merge_custom_config.sh /opt/kafka/config
+COPY scripts /opt/kafka/config
 COPY ./kafka_server_jaas.conf /opt/kafka/config
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
