@@ -1,5 +1,6 @@
 #!/bin/bash
 
+kafkaconfig_dir="/opt/kafka/config/kafkaconfig"
 operator_config="/opt/kafka/config/kafkaconfig/config.properties"
 ssl_config="/opt/kafka/config/kafkaconfig/ssl.properties"
 temp_operator_config="/opt/kafka/config/temp-config/config.properties"
@@ -8,8 +9,21 @@ temp_clientauth_config="/opt/kafka/config/temp-config/clientauth.properties"
 controller_config="/opt/kafka/config/kraft/controller.properties"
 broker_config="/opt/kafka/config/kraft/broker.properties"
 server_config="/opt/kafka/config/kraft/server.properties"
+server_config_file="/opt/kafka/config/custom-config/server.properties"
+broker_config_file="/opt/kafka/config/custom-config/broker.properties"
+controller_config_file="/opt/kafka/config/custom-config/controller.properties"
 
+# merge custom config files with default ones
 cp $temp_operator_config $operator_config
+roles=$(grep process.roles $operator_config | cut -d'=' -f 2-)
+if [[ $roles = "controller" ]]; then
+  /opt/kafka/config/merge_custom_config.sh $controller_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+elif [[ $roles = "broker" ]]; then
+  /opt/kafka/config/merge_custom_config.sh $broker_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+else [[ $roles = "controller,broker" ]]
+  /opt/kafka/config/merge_custom_config.sh $server_config_file $operator_config $kafkaconfig_dir/config.properties.merged
+fi
+
 if [[ -f $temp_ssl_config ]]; then
   cat $temp_ssl_config $operator_config > config.properties.updated
   mv config.properties.updated $operator_config
@@ -26,7 +40,6 @@ if [[ $KAFKA_PASSWORD != "" ]]; then
   sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $CLIENTAUTHFILE
 fi
 
-
 while IFS='=' read -r key value
 do
     key=$(echo $key | tr '.' '_')
@@ -42,23 +55,33 @@ delete_cluster_metadata() {
   NODE_ID=$1
   echo "Enter for metadata deleting node $NODE_ID"
   if [[ ! -d "$log_dirs/$NODE_ID" ]]; then
-    mkdir -p "$log_dirs"/"$NODE_ID"
+    sudo mkdir -p "$log_dirs"/"$NODE_ID"
     echo "Created kafka data directory at "$log_dirs"/$NODE_ID"
-
   else
     echo "Deleting old metadata..."
-    rm -rf $log_dirs/$NODE_ID/meta.properties
-    if [[ -d "$metadata_log_dir/__cluster_metadata-0" ]]; then
-       rm -rf $metadata_log_dir/meta.properties
-    fi
+    sudo rm -rf $log_dirs/$NODE_ID/meta.properties
+  fi
+  if [[ ! -d "$metadata_log_dir" ]]; then
+    sudo mkdir -p $metadata_log_dir
+    echo "Created kafka metadata directory at $metadata_log_dir"
   fi
 
-  if [[ ! -f "$log_dirs/cluster_id" ]]; then
-      echo "$CLUSTER_ID" > "$log_dirs"/cluster_id
-  else
-      CLUSTER_ID=$(cat "$log_dirs"/cluster_id)
-  fi
+  # Give log_dirs access for kafka user
+  sudo chown -R kafka:kafka "$log_dirs"/"$NODE_ID"
+  # Give metadata_log_dirs acces for kafka user
+  sudo chown -R kafka:kafka "$metadata_log_dir"
 
+  if [ -e "$metadata_log_dir/meta.properties" ]; then
+     sudo rm -rf $metadata_log_dir/meta.properties
+  fi
+  # Delete previously configured controller.quorum.voters file
+  if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
+     sudo rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
+  fi
+  # Add or replace cluster_id to log_dirs/cluster_id
+  sudo sh -c "echo '$CLUSTER_ID' > '$log_dirs'/cluster_id"
+  # No required password line remove from -> /etc/sudoers files
+  sudo sed -i '$d' /etc/sudoers
 }
 
 AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
