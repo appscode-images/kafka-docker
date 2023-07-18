@@ -1,24 +1,26 @@
 # Build cruise control image to get the metrics reporter jar file
-FROM gradle:jdk11 AS cruise_control
+FROM eclipse-temurin:17.0.7_7-jdk AS cruise_control
 
-ENV CC_VERSION=2.5.42
+ARG CC_VERSION
+ARG CCUI_VERSION
 
 # Fetch Cruise-Control binary
 # https://github.com/linkedin/cruise-control/releases contains all the kafka release binary
 RUN set -eux \
-    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates wget \
-    && wget -O /tmp/cc.tar.gz https://github.com/linkedin/cruise-control/archive/refs/tags/${CC_VERSION}.tar.gz
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates wget git \
+    && wget -O /opt/cc.tar.gz https://github.com/linkedin/cruise-control/archive/refs/tags/${CC_VERSION}.tar.gz
 
 # Extract
 RUN set -eux \
-	&& cd /tmp \
+	&& cd /opt \
 	&& tar xzvf cc.tar.gz \
-	&& mv /tmp/cruise-control-* /tmp/cruise-control \
+	&& mv /opt/cruise-control-* /opt/cruise-control \
     && rm cc.tar.gz
+
+WORKDIR /opt/cruise-control
 
 ### Setup git user and init repo, otherwise build gradle will fail
 RUN set -eux \
-	&& cd /tmp/cruise-control \
 	&& git config --global user.email root@localhost \
 	&& git config --global user.name root \
 	&& git init \
@@ -28,15 +30,14 @@ RUN set -eux \
 
 ### Setup git user and init repo ###
 RUN set -eux \
-    && cd /tmp/cruise-control \
+    && ./gradlew clean \
     && ./gradlew jar :cruise-control-metric-reporter:jar
 
 # Build Kafka
 FROM openjdk:11-jre-buster AS Kafka
 
 ARG KAFKA_VERSION=3.3.2
-ENV KAFKA_VERSION=${KAFKA_VERSION}
-ENV SCALA_VERSION=2.13
+ARG SCALA_VERSION=2.13
 ENV HOME=/opt/kafka
 ENV PATH=${PATH}:${HOME}/bin
 
@@ -63,7 +64,7 @@ ENV KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremot
 
 # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
 # allows Kafka to find the reporter at runtime
-COPY --from=cruise_control /tmp/cruise-control/cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
+COPY --from=cruise_control /opt/cruise-control/cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
 
 RUN ["chmod", "+x", "/opt/kafka/config/entrypoint.sh"]
 

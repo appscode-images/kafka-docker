@@ -1,17 +1,15 @@
 SHELL=/bin/bash -o pipefail
 
-REGISTRY   ?= ghcr.io/kubedb
-BIN        ?= kafka-kraft
-IMAGE      := $(REGISTRY)/$(BIN)
-TAG        ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
+REGISTRY      ?= ghcr.io/kubedb
+BIN           ?= cruise-control
+IMAGE         := $(REGISTRY)/$(BIN)
+TAG           ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
+CC_VERSION    ?= 2.5.123
+CCUI_VERSION  ?= 0.4.0
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
 PLATFORM         ?= linux/$(subst x86_64,amd64,$(subst aarch64,arm64,$(shell uname -m)))
-VERSION           = $(TAG)_$(subst /,_,$(PLATFORM))
-KAFKA_VERSION    ?= 3.3.2
-SCALA_VERSION    ?= 2.13
-CC_VERSION       ?= 2.5.123
-CCUI_VERSION     ?= 0.4.0
+VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
 
 container-%:
 	@$(MAKE) container \
@@ -32,8 +30,6 @@ container:
 	@echo "container: $(IMAGE):$(VERSION)"
 	@docker buildx build --build-arg "CC_VERSION=$(CC_VERSION)" \
                          --build-arg "CCUI_VERSION=$(CCUI_VERSION)" \
-                         --build-arg "KAFKA_VERSION=$(KAFKA_VERSION)" \
-                         --build-arg "SCALA_VERSION=$(SCALA_VERSION)" \
                          --platform $(PLATFORM) --load --pull -t $(IMAGE):$(VERSION) -f Dockerfile .
 	@echo
 

@@ -1,14 +1,12 @@
-# Multi-stage build requires Docker 17.05 or higher
 # --------------- Builder stage ---------------
-FROM gradle:jdk11 AS cruise_control
+FROM eclipse-temurin:17.0.7_7-jdk AS cruisecontrol
 
-ENV CC_VERSION=2.5.42
-ENV CCUI_VERSION=0.4.0
+ARG CC_VERSION
 
 # Fetch Cruise-Control binary
 # https://github.com/linkedin/cruise-control/releases contains all the kafka release binary
 RUN set -eux \
-    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates wget \
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates wget git \
     && wget -O /opt/cc.tar.gz https://github.com/linkedin/cruise-control/archive/refs/tags/${CC_VERSION}.tar.gz
 
 # Extract
@@ -29,19 +27,19 @@ RUN set -eux \
 	&& git commit -m "Init local repo." \
 	&& git tag -a ${CC_VERSION} -m "Init local version."
 
-# Compile and remove leftover directories \
+# Build
 RUN set -eux \
-	&& ./gradlew --console=plain --no-daemon -i clean \
-    && ./gradlew --console=plain --no-daemon -i jar :cruise-control:jar  \
-    && rm -rf cruise-control-core cruise-control-metrics-reporter cruise-control-client
+    && ./gradlew clean \
+    && ./gradlew jar \
+    && ./gradlew jar copyDependantLibs
 
 
-# Configure Cruise Control to point to the proper Kafka and Zookeeper endpoints
-RUN sed -i 's/bootstrap.servers=.*/bootstrap.servers=my-cluster-kafka-bootstrap:9092/g' config/cruisecontrol.properties \
-    && sed -i 's/capacity.config.file=.*/capacity.config.file=config\/capacityJBOD.json/g' config/cruisecontrol.properties \
-    && sed -i 's/sample.store.topic.replication.factor=.*/sample.store.topic.replication.factor=1/g' config/cruisecontrol.properties
+FROM node:20.3.1-buster as cruisecontrol_ui
 
-# Install Cruise Control GUI Frontend
+ARG CCUI_VERSION
+
+# Fetch Cruise-Control-UI binary
+# https://github.com/linkedin/cruise-control-ui/releases contains all the kafka release binary
 RUN set -eux \
     && wget -O /opt/ccui.tar.gz https://github.com/linkedin/cruise-control-ui/archive/refs/tags/v${CCUI_VERSION}.tar.gz
 
@@ -49,24 +47,30 @@ RUN set -eux \
 RUN set -eux \
 	&& cd /opt \
 	&& tar xzvf ccui.tar.gz \
-	&& mv /opt/cruise-control-ui-* /opt/cruise-control/cruise-control-ui/ \
+	&& mv /opt/cruise-control-ui-* /opt/cruise-control-ui \
     && rm ccui.tar.gz
 
-RUN cd cruise-control-ui/static \
-    && cat config.csv
-
-ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties"]
+# Build
+RUN set -eux \
+    && cd /opt/cruise-control-ui \
+    && npm install \
+    && npm run build
 
 # --------------- Final stage ---------------
 FROM centos:7
-WORKDIR cruise-control
+WORKDIR /opt/cruise-control
 
 RUN yum -y install java-11-openjdk-devel && \
     yum clean all -y
 
-COPY --from=cruise_control /opt/cruise-control .
+COPY --from=cruisecontrol    /opt/cruise-control /opt/cruise-control
+COPY --from=cruisecontrol_ui /opt/cruise-control-ui /opt/cruise-control/cruise-control-ui
+
+RUN set -xe; \
+    echo "local,localhost,/kafkacruisecontrol" > /opt/cruise-control/cruise-control-ui/static/config.csv
 
 # Ensure Cruise Control writable for logs
 RUN chmod a+rw -R .
 
-ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties"]
+ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties 8090"]
+EXPOSE 8090
