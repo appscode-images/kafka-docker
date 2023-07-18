@@ -72,5 +72,5 @@ RUN set -xe; \
 # Ensure Cruise Control writable for logs
 RUN chmod a+rw -R .
 
-ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties 8090"]
-EXPOSE 8090
+ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties 9090"]
+EXPOSE 9090
