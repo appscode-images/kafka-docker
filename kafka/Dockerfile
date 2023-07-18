@@ -1,27 +1,61 @@
-FROM openjdk:11-jre-buster
+# Build cruise control image to get the metrics reporter jar file
+FROM eclipse-temurin:17.0.7_7-jdk AS cruise_control
+ARG CC_VERSION
 
-ARG KAFKA_VERSION=3.3.2
-ENV KAFKA_VERSION=${KAFKA_VERSION}
-ENV SCALA_VERSION=2.13
+# Fetch Cruise-Control binary
+# https://github.com/linkedin/cruise-control/releases contains all the kafka release binary
+RUN set -eux \
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends ca-certificates wget git \
+    && wget -O /opt/cc.tar.gz https://github.com/linkedin/cruise-control/archive/refs/tags/${CC_VERSION}.tar.gz
+
+# Extract
+RUN set -eux \
+	&& cd /opt \
+	&& tar xzvf cc.tar.gz \
+	&& mv /opt/cruise-control-* /opt/cruise-control \
+    && rm cc.tar.gz
+
+WORKDIR /opt/cruise-control
+
+### Setup git user and init repo, otherwise build gradle will fail
+RUN set -eux \
+	&& git config --global user.email root@localhost \
+	&& git config --global user.name root \
+	&& git init \
+	&& git add . \
+	&& git commit -m "Init local repo." \
+	&& git tag -a ${CC_VERSION} -m "Init local version."
+
+### Setup git user and init repo ###
+RUN set -eux \
+    && ./gradlew clean \
+    && ./gradlew jar :cruise-control-metric-reporter:jar
+
+FROM openjdk:11-jre-buster
+ARG KAFKA_VERSION
+ARG SCALA_VERSION
+ARG KAFKA_REGISTRY
 ENV HOME=/opt/kafka
 ENV PATH=${PATH}:${HOME}/bin
 
 LABEL name="kafka" version=${KAFKA_VERSION}
 LABEL org.opencontainers.image.source https://github.com/kubedb/kafka-docker
 
-
-# ref: https://archive.apache.org/dist/kafka contains all the kafka version binary
 # ref: https://github.com/edenhill/kcat used for installing kafkacat cli
 # Install sudo to give permission 'custom config directory, metadata directory' for kafka user
 RUN apt-get update \
  && apt-get install -y wget sudo kafkacat \
- && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+ && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ${KAFKA_REGISTRY}/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
-
-COPY scripts /opt/kafka/config
+ \
+    # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
+# allows Kafka to find the reporter at runtime
+COPY --from=cruise_control /opt/cruise-control/cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
+COPY scripts/entrypoint.sh /opt/kafka/config/entrypoint.sh
+COPY scripts/merge_custom_config.sh /opt/kafka/config/merge_custom_config.sh
 COPY ./kafka_server_jaas.conf /opt/kafka/config
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
