@@ -35,11 +35,12 @@ FROM openjdk:11-jre-buster
 ARG KAFKA_VERSION
 ARG SCALA_VERSION
 ARG KAFKA_REGISTRY
+ARG CC_VERSION
 ENV HOME=/opt/kafka
 ENV PATH=${PATH}:${HOME}/bin
 
 LABEL name="kafka" version=${KAFKA_VERSION}
-LABEL org.opencontainers.image.source https://github.com/kubedb/kafka-docker
+LABEL org.opencontainers.image.source=https://github.com/kubedb/kafka-docker
 
 # ref: https://github.com/edenhill/kcat used for installing kafkacat cli
 # Install sudo to give permission 'custom config directory, metadata directory' for kafka user
@@ -50,10 +51,10 @@ RUN apt-get update \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
- \
-    # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
+
+# Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
 # allows Kafka to find the reporter at runtime
-COPY --from=cruise_control /opt/cruise-control/cruise-control-metrics-reporter/build/libs/* /opt/kafka/libs/
+COPY --from=cruise_control /opt/cruise-control/cruise-control-metrics-reporter/build/libs/cruise-control-metrics-reporter-${CC_VERSION}.jar /opt/kafka/libs/cruise-control-metrics-reporter.jar
 COPY scripts/entrypoint.sh /opt/kafka/config/entrypoint.sh
 COPY scripts/merge_custom_config.sh /opt/kafka/config/merge_custom_config.sh
 COPY ./kafka_server_jaas.conf /opt/kafka/config

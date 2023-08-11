@@ -66,11 +66,17 @@ RUN yum -y install java-11-openjdk-devel && \
 COPY --from=cruisecontrol    /opt/cruise-control /opt/cruise-control
 COPY --from=cruisecontrol_ui /opt/cruise-control-ui /opt/cruise-control/cruise-control-ui
 
-RUN set -xe; \
-    echo "local,localhost,/kafkacruisecontrol" > /opt/cruise-control/cruise-control-ui/static/config.csv
+COPY /scripts/entrypoint.sh /opt/cruise-control/config/entrypoint.sh
+COPY /scripts/merge_custom_config.sh /opt/cruise-control/config/merge_custom_config.sh
+COPY ./kafka_server_jaas.conf /opt/cruise-control/config
+
+#COPY /scripts/cruisecontrol.properties /opt/cruise-control/config/cruisecontrol.properties
 
 # Ensure Cruise Control writable for logs
 RUN chmod a+rw -R .
 
-ENTRYPOINT ["/bin/bash", "-c", "./kafka-cruise-control-start.sh config/cruisecontrol.properties 9090"]
+RUN ["chmod", "+x", "/opt/cruise-control/config/entrypoint.sh"]
+RUN ["chmod", "+x", "/opt/cruise-control/config/merge_custom_config.sh"]
+
+ENTRYPOINT ["/opt/cruise-control/config/entrypoint.sh"]
 EXPOSE 9090
