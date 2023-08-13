@@ -8,7 +8,7 @@ TAG        ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
 PLATFORM         ?= linux/$(subst x86_64,amd64,$(subst aarch64,arm64,$(shell uname -m)))
 VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
-KAFKA_VERSION    ?= 3.4.1
+KAFKA_VERSION    ?= 3.3.0
 SCALA_VERSION    ?= 2.13
 KAFKA_REGISTRY   ?= https://archive.apache.org/dist/kafka
 CC_VERSION       ?= 2.5.123
