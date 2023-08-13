@@ -22,6 +22,7 @@ jobs:
       - name: Print version info
         id: semver
         run: |
+          cd kafka
           make version
 
       - name: Set up QEMU
@@ -38,10 +39,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run checks
+      - name: Build kafka
         run: |
-          make ci
+          cd kafka
+          make release
 
-      - name: Build
+      - name: Build cruise-control
         run: |
+          cd cruise-control
           make release
