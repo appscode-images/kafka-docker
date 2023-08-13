@@ -68,7 +68,6 @@ COPY --from=cruisecontrol_ui /opt/cruise-control-ui /opt/cruise-control/cruise-c
 
 COPY /scripts/entrypoint.sh /opt/cruise-control/config/entrypoint.sh
 COPY /scripts/merge_custom_config.sh /opt/cruise-control/config/merge_custom_config.sh
-COPY ./kafka_server_jaas.conf /opt/cruise-control/config
 
 #COPY /scripts/cruisecontrol.properties /opt/cruise-control/config/cruisecontrol.properties
 
