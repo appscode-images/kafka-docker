@@ -42,6 +42,12 @@ jobs:
         run: |
           make ci
 
-      - name: Build
+      - name: Build kafka
         run: |
+          cd kafka
+          make release
+
+      - name: Build cruise-control
+        run: |
+          cd cruise-control
           make release
