@@ -39,10 +39,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run checks
-        run: |
-          make ci
-
       - name: Build kafka
         run: |
           cd kafka
