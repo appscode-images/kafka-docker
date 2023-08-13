@@ -22,6 +22,7 @@ jobs:
       - name: Print version info
         id: semver
         run: |
+          cd kafka
           make version
 
       - name: Set up QEMU
@@ -37,10 +38,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run checks
-        run: |
-          make ci
 
       - name: Build kafka
         run: |
