@@ -57,7 +57,12 @@ update_advertised_listeners() {
   # Loop through the array and modify elements
   modified_elements=()
   for element in "${elements[@]}"; do
-      modified_elements+=("${element/\/\//\/\/$prefix.}")
+        # Check if the element starts with the excluded prefix
+        if [[ "$element" == "INTERNAL://"* ]]; then
+            modified_elements+=("$element")  # Skip modification
+        else
+            modified_elements+=("${element/\/\//\/\/$prefix.}")
+        fi
   done
 
   # Join the modified elements into a string using commas as delimiters
