@@ -12,7 +12,7 @@ server_config="/opt/kafka/config/kraft/server.properties"
 server_config_file="/opt/kafka/config/custom-config/server.properties"
 broker_config_file="/opt/kafka/config/custom-config/broker.properties"
 controller_config_file="/opt/kafka/config/custom-config/controller.properties"
-
+kafka_controller_max_id=1000
 
 delete_cluster_metadata() {
   NODE_ID=$1
@@ -58,7 +58,7 @@ update_advertised_listeners() {
   modified_elements=()
   for element in "${elements[@]}"; do
         # Check if the element starts with the excluded prefix
-        if [[ "$element" == "INTERNAL://"* ]]; then
+        if [[ "$element" == "INTERNAL://"* || "$element" == "EXTERNAL://"* ]]; then
             modified_elements+=("$element")  # Skip modification
         else
             modified_elements+=("${element/\/\//\/\/$prefix.}")
@@ -152,7 +152,7 @@ if [[ $process_roles = "controller" ]]; then
   exec kafka-server-start.sh /opt/kafka/config/kraft/controller.properties
 
 elif [[ $process_roles = "broker" ]]; then
-  ID=$(( ID + CONTROLLER_NODE_COUNT ))
+  ID=$(( ID + kafka_controller_max_id ))
   delete_cluster_metadata $ID
 
   echo "node.id=$ID" >> $operator_config
