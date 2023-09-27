@@ -12,6 +12,68 @@ server_config="/opt/kafka/config/kraft/server.properties"
 server_config_file="/opt/kafka/config/custom-config/server.properties"
 broker_config_file="/opt/kafka/config/custom-config/broker.properties"
 controller_config_file="/opt/kafka/config/custom-config/controller.properties"
+kafka_controller_max_id=1000
+
+delete_cluster_metadata() {
+  NODE_ID=$1
+  echo "Enter for metadata deleting node $NODE_ID"
+  if [[ ! -d "$log_dirs/$NODE_ID" ]]; then
+    sudo mkdir -p "$log_dirs"/"$NODE_ID"
+    echo "Created kafka data directory at "$log_dirs"/$NODE_ID"
+  else
+    echo "Deleting old metadata..."
+    sudo rm -rf $log_dirs/$NODE_ID/meta.properties
+  fi
+  if [[ ! -d "$metadata_log_dir" ]]; then
+    sudo mkdir -p $metadata_log_dir
+    echo "Created kafka metadata directory at $metadata_log_dir"
+  fi
+
+  # Give log_dirs access for kafka user
+  sudo chown -R kafka:kafka "$log_dirs"/"$NODE_ID"
+  # Give metadata_log_dirs acces for kafka user
+  sudo chown -R kafka:kafka "$metadata_log_dir"
+
+  if [ -e "$metadata_log_dir/meta.properties" ]; then
+     sudo rm -rf $metadata_log_dir/meta.properties
+  fi
+  # Delete previously configured controller.quorum.voters file
+  if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
+     sudo rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
+  fi
+  # Add or replace cluster_id to log_dirs/cluster_id
+  sudo sh -c "echo '$CLUSTER_ID' > '$log_dirs'/cluster_id"
+  # No required password line remove from -> /etc/sudoers files
+  sudo sed -i '$d' /etc/sudoers
+}
+
+update_advertised_listeners() {
+  # Use tr to replace commas with newlines and read into an array
+  readarray -t elements < <(echo "$advertised_listeners" | tr ',' '\n')
+
+  # Prefix to append to each element
+  prefix=$HOSTNAME
+
+  # Loop through the array and modify elements
+  modified_elements=()
+  for element in "${elements[@]}"; do
+        # Check if the element starts with the excluded prefix
+        if [[ "$element" == "INTERNAL://"* || "$element" == "EXTERNAL://"* ]]; then
+            modified_elements+=("$element")  # Skip modification
+        else
+            modified_elements+=("${element/\/\//\/\/$prefix.}")
+        fi
+  done
+
+  # Join the modified elements into a string using commas as delimiters
+  output_string=$(IFS=','; echo "${modified_elements[*]}")
+  advertised_listeners=$output_string
+
+  # Print the modified string
+  echo "Modified advertised_listeners: $advertised_listeners"
+
+}
+
 
 # merge custom config files with default ones
 cp $temp_operator_config $operator_config
@@ -51,43 +113,20 @@ ID=${HOSTNAME##*-}
 NODE=$(echo $HOSTNAME | rev | cut -d- -f1 --complement | rev )
 CONTROLLER_NODE_COUNT=${controller_count}
 
-delete_cluster_metadata() {
-  NODE_ID=$1
-  echo "Enter for metadata deleting node $NODE_ID"
-  if [[ ! -d "$log_dirs/$NODE_ID" ]]; then
-    sudo mkdir -p "$log_dirs"/"$NODE_ID"
-    echo "Created kafka data directory at "$log_dirs"/$NODE_ID"
-  else
-    echo "Deleting old metadata..."
-    sudo rm -rf $log_dirs/$NODE_ID/meta.properties
-  fi
-  if [[ ! -d "$metadata_log_dir" ]]; then
-    sudo mkdir -p $metadata_log_dir
-    echo "Created kafka metadata directory at $metadata_log_dir"
-  fi
-
-  # Give log_dirs access for kafka user
-  sudo chown -R kafka:kafka "$log_dirs"/"$NODE_ID"
-  # Give metadata_log_dirs acces for kafka user
-  sudo chown -R kafka:kafka "$metadata_log_dir"
-
-  if [ -e "$metadata_log_dir/meta.properties" ]; then
-     sudo rm -rf $metadata_log_dir/meta.properties
-  fi
-  # Delete previously configured controller.quorum.voters file
-  if [ -e "$metadata_log_dir/__cluster_metadata-0/quorum-state" ] ; then
-     sudo rm -rf "$metadata_log_dir/__cluster_metadata-0/quorum-state"
-  fi
-  # Add or replace cluster_id to log_dirs/cluster_id
-  sudo sh -c "echo '$CLUSTER_ID' > '$log_dirs'/cluster_id"
-  # No required password line remove from -> /etc/sudoers files
-  sudo sed -i '$d' /etc/sudoers
-}
-
 AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
 sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $AUTHFILE
 sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $AUTHFILE
 export KAFKA_OPTS="$KAFKA_OPTS -Djava.security.auth.login.config=$AUTHFILE"
+
+if [[ -n $advertised_listeners ]]; then
+  old_advertised_listeners=$advertised_listeners
+  update_advertised_listeners
+    # Print the modified string
+    echo "Updating advertised_listeners to: $advertised_listeners"
+    # Use sed to replace the line containing "advertised.listeners" with the updated one
+    sed -i "s|$old_advertised_listeners|$advertised_listeners|" "$operator_config"
+fi
+
 
 if [[ $process_roles = "controller" ]]; then
 
@@ -113,7 +152,7 @@ if [[ $process_roles = "controller" ]]; then
   exec kafka-server-start.sh /opt/kafka/config/kraft/controller.properties
 
 elif [[ $process_roles = "broker" ]]; then
-  ID=$(( ID + CONTROLLER_NODE_COUNT ))
+  ID=$(( ID + kafka_controller_max_id ))
   delete_cluster_metadata $ID
 
   echo "node.id=$ID" >> $operator_config
