@@ -21,11 +21,10 @@ RUN apt-get update \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && rm -rf /opt/kafka/bin/windows /opt/kafka/config/kraft /opt/kafka/site-docs \
- && rm -rf /opt/kafka/bin/zookeeper-*.sh /opt/kafka/bin/kafka-*.sh
+ && rm -rf /opt/kafka/bin/zookeeper-*.sh
 
-# Copy scripts directory to /opt/kafka/scripts/
-COPY scripts/ /opt/kafka/scripts/
-
+# Copy scripts directory to the home directory of the container
+COPY scripts/ ${HOME}/scripts/
 # Create a kafka group with GID 1001 and a kafka user with UID 1001.
 # The user's home directory is set to $HOME and the shell is set to /bin/bash.
 # The kafka user is made the owner of $HOME and /tmp directories.
@@ -35,15 +34,11 @@ RUN groupadd -r -g 1001 kafka && \
 
 # Set the user to kafka
 USER kafka
-
-# Change the permission of all shell scripts in /opt/kafka/scripts directory to executable
-RUN ["chmod", "+x", "/opt/kafka/scripts/*.sh"]
-
+# Make all scripts in the scripts directory executable
+RUN chmod +x ${HOME}/scripts/*.sh
 # Set the working directory to the home directory of the kafka user
 WORKDIR $HOME
-
 # Expose port 8083
 EXPOSE 8083
-
 # Set the entrypoint to /opt/kafka/scripts/entrypoint.sh
 ENTRYPOINT ["/opt/kafka/scripts/entrypoint.sh"]

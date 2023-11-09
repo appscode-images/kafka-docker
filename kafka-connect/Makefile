@@ -1,7 +1,7 @@
 SHELL=/bin/bash -o pipefail
 
 REGISTRY   ?= ghcr.io/kubedb
-BIN        ?= kafka-kraft
+BIN        ?= kafka-connect
 IMAGE      := $(REGISTRY)/$(BIN)
 TAG        ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
 
@@ -11,7 +11,6 @@ VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
 KAFKA_VERSION    ?= 3.5.1
 SCALA_VERSION    ?= 2.13
 KAFKA_REGISTRY   ?= https://archive.apache.org/dist/kafka
-CC_VERSION       ?= 2.5.123
 
 container-%:
 	@$(MAKE) container \
@@ -30,8 +29,7 @@ all-push: $(addprefix push-, $(subst /,_,$(DOCKER_PLATFORMS)))
 .PHONY: container
 container:
 	@echo "container: $(IMAGE):$(VERSION)"
-	@docker buildx build --build-arg "CC_VERSION=$(CC_VERSION)" \
-                         --build-arg "KAFKA_VERSION=$(KAFKA_VERSION)" \
+	@docker buildx build --build-arg "KAFKA_VERSION=$(KAFKA_VERSION)" \
                          --build-arg "SCALA_VERSION=$(SCALA_VERSION)" \
                          --build-arg "KAFKA_REGISTRY=$(KAFKA_REGISTRY)" \
                          --platform $(PLATFORM) --load --pull -t $(IMAGE):$(VERSION) -f Dockerfile .
