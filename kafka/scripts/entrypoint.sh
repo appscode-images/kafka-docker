@@ -14,6 +14,13 @@ broker_config_file="/opt/kafka/config/custom-config/broker.properties"
 controller_config_file="/opt/kafka/config/custom-config/controller.properties"
 kafka_controller_max_id=1000
 
+# For debug purpose
+print_bootstrap_config() {
+  echo "--------------- Bootstrap configurations ------------------"
+  echo $1
+  echo "------------------------------------------------------------"
+}
+
 delete_cluster_metadata() {
   NODE_ID=$1
   echo "Enter for metadata deleting node $NODE_ID"
@@ -146,8 +153,10 @@ if [[ $process_roles = "controller" ]]; then
       mv controller.properties.updated $controller_config
   fi
 
-  kafka-storage.sh format -t "$CLUSTER_ID" -c /opt/kafka/config/kraft/controller.properties --ignore-formatted
+  print_bootstrap_config $server_config
 
+    echo "Formatting controller properties"
+  kafka-storage.sh format -t "$CLUSTER_ID" -c /opt/kafka/config/kraft/controller.properties --ignore-formatted
   echo "Starting Kafka Server"
   exec kafka-server-start.sh /opt/kafka/config/kraft/controller.properties
 
@@ -169,10 +178,10 @@ elif [[ $process_roles = "broker" ]]; then
       mv $broker_config.updated $broker_config
   fi
 
+  print_bootstrap_config $server_config
+
   echo "Formatting broker properties"
-
   kafka-storage.sh format -t $CLUSTER_ID -c $broker_config --ignore-formatted
-
   echo "Starting Kafka Server"
   exec kafka-server-start.sh $broker_config
 
@@ -193,6 +202,9 @@ else [[ $process_roles = "controller,broker" ]]
       mv $server_config.updated $server_config
   fi
 
+  print_bootstrap_config $server_config
+
+  echo "Formatting server properties"
   kafka-storage.sh format -t $CLUSTER_ID -c $server_config --ignore-formatted
   echo "Starting Kafka Server"
   exec kafka-server-start.sh $server_config
