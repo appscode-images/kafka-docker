@@ -66,6 +66,11 @@ for slave_file_line in "${slave_file_a[@]}"; do
         if ! [[ $slave_property_name =~ $COMMENT_LINE_REGEX ]]; then
             all_properties[$slave_property_name]=$slave_property_value
         fi
+    else
+        if [[ "$slave_property_name" == "listeners" || "$slave_property_name" == "advertised.listeners" || "$slave_property_name" == "listener.security.protocol.map" ]]; then
+            modified_elements+=("$element")  # Skip modification
+            all_properties[$slave_property_name]="$slave_property_value,${all_properties[$slave_property_name]}"
+        fi
     fi
 done
 
