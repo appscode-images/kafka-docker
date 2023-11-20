@@ -50,19 +50,26 @@ function update_configuration() {
         fi
     done
 }
+# Removes comments and empty lines from a file.
+# Sorts the file in alphabetical order.
+# Arguments -> A properties file
+function remove_comments_and_sort() {
+  sed -i '/^#/d;/^$/d' $1
+  sort -o $1 $1
+}
 # This script starts Kafka Connect in either standalone or distributed mode based on the value of KAFKA_CONNECT_MODE environment variable.
-# If KAFKA_CONNECT_MODE is set to "standalone", 
-# - It updates the configuration with the values from $default_connect_config and $connect_standalone_config variables
-# - Starts Kafka Connect in standalone mode using connect-standalone.sh script.
-# If KAFKA_CONNECT_MODE is set to "distributed",
-# - It updates the configuration with the values from $default_connect_config and $connect_distributed_config variables
-# - Starts Kafka Connect in distributed mode using connect-distributed.sh script.
+# For both modes, it does the following:
+# - It updates the configuration with the values from default configuration and mode-specific configuration files.
+# - It sorts and removes comments from the configuration file
+# - Starts Kafka Connect using the updated configuration file with mode-specific script(ex. connect-standalone.sh, connect-distributed.sh)
 if [[ $KAFKA_CONNECT_MODE = "standalone" ]]; then
     update_configuration $default_connect_config $connect_standalone_config
+    remove_comments_and_sort $connect_standalone_config
     echo "Starting Kafka Connect in Standalone mode"
     exec connect-standalone.sh $connect_standalone_config
 else [[ $KAFKA_CONNECT_MODE = "distributed" ]]
     update_configuration $default_connect_config $connect_distributed_config
+    remove_comments_and_sort $connect_distributed_config
     echo "Starting Kafka Connect in Distributed mode"
     exec connect-distributed.sh $connect_distributed_config
 fi

@@ -30,7 +30,7 @@ COPY scripts/ ${HOME}/scripts/
 # The kafka user is made the owner of $HOME and /tmp directories.
 RUN groupadd -r -g 1001 kafka && \
     useradd -m -d $HOME -s /bin/bash -u 1001 -r -g kafka kafka && \
-    chown -R kafka:kafka $HOME && chown -R kafka:kafka /tmp
+    chown -R kafka:kafka $HOME
 
 # Set the user to kafka
 USER kafka
