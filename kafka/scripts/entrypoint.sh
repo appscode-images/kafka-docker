@@ -12,7 +12,7 @@ server_config="/opt/kafka/config/kraft/server.properties"
 server_config_file="/opt/kafka/config/custom-config/server.properties"
 broker_config_file="/opt/kafka/config/custom-config/broker.properties"
 controller_config_file="/opt/kafka/config/custom-config/controller.properties"
-kafka_controller_max_id=1000
+kafka_broker_max_id=1000
 
 # For debug purpose
 print_bootstrap_config() {
@@ -158,7 +158,7 @@ function remove_comments_and_sort() {
 # sets the node ID, updates the log directories,
 # and formats the storage using kafka-storage script before starting the Kafka server.
 if [[ $process_roles = "controller" ]]; then
-
+  ID=$(( ID + kafka_broker_max_id ))
   delete_cluster_metadata $ID
 
   echo "node.id=$ID" >> /opt/kafka/config/kafkaconfig/config.properties
@@ -183,7 +183,7 @@ if [[ $process_roles = "controller" ]]; then
   exec kafka-server-start.sh /opt/kafka/config/kraft/controller.properties
 
 elif [[ $process_roles = "broker" ]]; then
-  ID=$(( ID + kafka_controller_max_id ))
+
   delete_cluster_metadata $ID
 
   echo "node.id=$ID" >> $operator_config
@@ -225,7 +225,6 @@ else [[ $process_roles = "controller,broker" ]]
   fi
 
   remove_comments_and_sort $server_config
-  print_bootstrap_config $server_config
 
   echo "Formatting server properties"
   kafka-storage.sh format -t $CLUSTER_ID -c $server_config --ignore-formatted
