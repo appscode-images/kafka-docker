@@ -31,7 +31,7 @@ RUN set -eux \
     && ./gradlew clean \
     && ./gradlew jar :cruise-control-metric-reporter:jar
 
-FROM openjdk:11-jre-buster
+FROM eclipse-temurin:17.0.7_7-jdk
 
 ARG KAFKA_VERSION
 ARG SCALA_VERSION

@@ -67,7 +67,7 @@ update_advertised_listeners() {
   modified_elements=()
   for element in "${elements[@]}"; do
         # Check if the element starts with the excluded prefix
-        if [[ "$element" == "BROKER://"* || "$element" == "CC://"* ]]; then
+        if [[ "$element" == "BROKER://"* ]]; then
           modified_elements+=("${element/\/\//\/\/$prefix.}")
         else
           modified_elements+=("$element")  # Skip modification
