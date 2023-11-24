@@ -31,7 +31,8 @@ RUN set -eux \
     && ./gradlew clean \
     && ./gradlew jar :cruise-control-metric-reporter:jar
 
-FROM openjdk:11-jre-buster
+FROM eclipse-temurin:17.0.7_7-jdk
+
 ARG KAFKA_VERSION
 ARG SCALA_VERSION
 ARG KAFKA_REGISTRY
@@ -45,12 +46,13 @@ LABEL org.opencontainers.image.source=https://github.com/kubedb/kafka-docker
 # ref: https://github.com/edenhill/kcat used for installing kafkacat cli
 # Install sudo to give permission 'custom config directory, metadata directory' for kafka user
 RUN apt-get update \
- && apt-get install -y wget sudo kafkacat \
+ && apt-get install -y wget kafkacat nano \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ${KAFKA_REGISTRY}/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
- && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+ && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
+ && rm -rf ${HOME}/bin/windows ${HOME}/site-docs
 
 # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
 # allows Kafka to find the reporter at runtime
@@ -64,8 +66,6 @@ RUN wget -O /opt/jmx_exporter/jmx_prometheus_javaagent-0.17.2.jar https://repo1.
 ENV EXTRA_ARGS="$EXTRA_ARGS -javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent-0.17.2.jar=56790:/opt/jmx_exporter/jmx-exporter-config.yaml"
 ENV KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
 
-# temporarily make kafka a sudo user
-RUN echo "kafka ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # use kafka non-root user with uid 1001
 RUN groupadd -r -g 1001 kafka && \
     useradd -m -d $HOME -s /bin/bash -u 1001 -r -g kafka kafka && \
