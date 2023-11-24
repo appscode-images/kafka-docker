@@ -4,7 +4,7 @@ REGISTRY      ?= ghcr.io/kubedb
 BIN           ?= cruise-control
 IMAGE         := $(REGISTRY)/$(BIN)
 TAG           ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
-CC_VERSION    ?= 2.5.123
+CC_VERSION    ?= 2.5.131
 CCUI_VERSION  ?= 0.4.0
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
