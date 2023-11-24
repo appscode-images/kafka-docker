@@ -11,7 +11,7 @@ VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
 KAFKA_VERSION    ?= 3.4.1
 SCALA_VERSION    ?= 2.13
 KAFKA_REGISTRY   ?= https://archive.apache.org/dist/kafka
-CC_VERSION       ?= 2.5.123
+CC_VERSION       ?= 2.5.131
 
 container-%:
 	@$(MAKE) container \
