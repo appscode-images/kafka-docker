@@ -1,20 +1,18 @@
-FROM openjdk:11-jre-buster
+FROM eclipse-temurin:17.0.7_7-jdk
 
 ARG KAFKA_VERSION
 ARG SCALA_VERSION
 ARG KAFKA_REGISTRY
 ENV HOME=/opt/kafka
 ENV PATH=${PATH}:${HOME}/bin
-
 # This Dockerfile is used to build a Kafka Connect image with the specified Kafka version.
 # It sets the image name and version as labels and specifies the source code repository.
 LABEL name="kafka-connect" version=${KAFKA_VERSION}
 LABEL org.opencontainers.image.source=https://github.com/kubedb/kafka-docker
-
-# Install wget and vim, download Kafka from the specified registry, extract it to /opt,
+# Install wget and nano, download Kafka from the specified registry, extract it to /opt,
 # move it to the user's home directory, and remove unnecessary files.
 RUN apt-get update \
- && apt-get install -y wget vim \
+ && apt-get install -y wget nano \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ${KAFKA_REGISTRY}/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
@@ -22,16 +20,14 @@ RUN apt-get update \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && rm -rf /opt/kafka/bin/windows /opt/kafka/config/kraft /opt/kafka/site-docs \
  && rm -rf /opt/kafka/bin/zookeeper-*.sh
-
 # Copy scripts directory to the home directory of the container
 COPY scripts/ ${HOME}/scripts/
 # Create a kafka group with GID 1001 and a kafka user with UID 1001.
 # The user's home directory is set to $HOME and the shell is set to /bin/bash.
-# The kafka user is made the owner of $HOME and /tmp directories.
+# The kafka user is made the owner of $HOME
 RUN groupadd -r -g 1001 kafka && \
     useradd -m -d $HOME -s /bin/bash -u 1001 -r -g kafka kafka && \
     chown -R kafka:kafka $HOME
-
 # Set the user to kafka
 USER kafka
 # Make all scripts in the scripts directory executable
