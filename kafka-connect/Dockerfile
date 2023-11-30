@@ -20,6 +20,9 @@ RUN apt-get update \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && rm -rf /opt/kafka/bin/windows /opt/kafka/config/kraft /opt/kafka/site-docs \
  && rm -rf /opt/kafka/bin/zookeeper-*.sh
+
+# Copy the JAAS configuration file to the config directory of Kafka
+COPY ./kafka_connect_jaas.conf /opt/kafka/config
 # Copy scripts directory to the home directory of the container
 COPY scripts/ ${HOME}/scripts/
 # Create a kafka group with GID 1001 and a kafka user with UID 1001.
