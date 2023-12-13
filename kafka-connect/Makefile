@@ -10,6 +10,7 @@ PLATFORM         ?= linux/$(subst x86_64,amd64,$(subst aarch64,arm64,$(shell una
 VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
 KAFKA_VERSION    ?= 3.5.1
 SCALA_VERSION    ?= 2.13
+JMX_PROMETHEUS_AGENT_VERSION ?= 0.20.0
 KAFKA_REGISTRY   ?= https://archive.apache.org/dist/kafka
 
 container-%:
