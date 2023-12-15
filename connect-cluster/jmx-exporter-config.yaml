@@ -105,3 +105,10 @@ rules:
     name: kafka_connect_worker_rebalance_$1
     help: "Kafka Connect JMX metric rebalance information"
     type: GAUGE
+
+  # kafka.connect:type=connect-coordinator-metrics,client-id=*
+  # kafka.connect:type=connect-metrics,client-id=*
+  - pattern: 'kafka.connect<type=(.+), client-id=(.+)><>([^:]+)'
+    name: kafka_connect_$1_$3
+    labels:
+      client_id: $2

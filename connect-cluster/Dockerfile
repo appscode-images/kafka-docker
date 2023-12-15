@@ -6,13 +6,13 @@ ARG KAFKA_REGISTRY
 ARG JMX_PROMETHEUS_AGENT_VERSION=0.20.0
 ENV HOME=/opt/kafka
 ENV PATH=${PATH}:${HOME}/bin
-# This Dockerfile is used to build a Kafka Connect image with the specified Kafka version.
+# This Dockerfile is used to build a Connect Cluster image with the specified Kafka version.
 # It sets the image name and version as labels and specifies the source code repository.
-LABEL name="kafka-connect" version=${KAFKA_VERSION}
+LABEL name="connect-cluster" version=${KAFKA_VERSION}
 LABEL org.opencontainers.image.source=https://github.com/kubedb/kafka-docker
 # Install wget and nano, download Kafka from the specified registry, extract it to /opt,
 # move it to the user's home directory, and remove unnecessary files.
-RUN apt-get update \
+RUN apt-get update && apt-get upgrade -y \
  && apt-get install -y wget nano \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ${KAFKA_REGISTRY}/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \

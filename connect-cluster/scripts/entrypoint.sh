@@ -39,13 +39,13 @@ function update_advertised_host_name() {
 
 #-----------------------------------------------Kafka Connect Basic Authentication--------------------------------------------------------------------#
 
-# Check if KAFKA_CONNECT_USER and KAFKA_CONNECT_PASSWORD have values
+# Check if CONNECT_CLUSTER_USER and CONNECT_CLUSTER_PASSWORD have values
 # If both variables are set, it creates a file named connect-credentials.properties in the /var/private/basic-auth directory
-# and writes the value of KAFKA_CONNECT_USER as the key and KAFKA_CONNECT_PASSWORD as the value in the file.
+# and writes the value of CONNECT_CLUSTER_USER as the key and CONNECT_CLUSTER_PASSWORD as the value in the file.
 # It also sets the KAFKA_OPTS environment variable to include the path to the kafka_connect_jaas.conf file.
 # This file is used for Java authentication and is located in the /opt/kafka/config directory.
-if [[ -n "$KAFKA_CONNECT_USER" && -n "$KAFKA_CONNECT_PASSWORD" ]]; then
-    echo "$KAFKA_CONNECT_USER=$KAFKA_CONNECT_PASSWORD" > /var/private/basic-auth/connect-credentials.properties
+if [[ -n "$CONNECT_CLUSTER_USER" && -n "$CONNECT_CLUSTER_PASSWORD" ]]; then
+    echo "$CONNECT_CLUSTER_USER=$CONNECT_CLUSTER_PASSWORD" > /var/private/basic-auth/connect-credentials.properties
     export KAFKA_OPTS="-Djava.security.auth.login.config=/opt/kafka/config/kafka_connect_jaas.conf"
 fi
 
@@ -60,21 +60,21 @@ if [ -e $custom_connect_config ] ; then
     cp $custom_connect_config $temp_custom_connect_config
 fi
 
-# This script starts Kafka Connect in either standalone or distributed mode based on the value of KAFKA_CONNECT_MODE environment variable.
+# This script starts Kafka Connect in either standalone or distributed mode based on the value of CONNECT_CLUSTER_MODE environment variable.
 # For both modes, it does the following:
 # - For distributed mode, it updates the value of 'rest.advertised.host.name' in the temporary configuration file(user can override it with custom configuration).
 # - It merges the default configuration file with the custom configuration file if custom configuration exist.
 # - It merges the mode-specific connect configuration with the values from (operator + custom configuration)
 # - It sorts and removes comments from the configuration file
 # - Starts Kafka Connect using the updated configuration file with mode-specific script(ex. connect-standalone.sh, connect-distributed.sh)
-if [[ $KAFKA_CONNECT_MODE = "standalone" ]]; then
+if [[ $CONNECT_CLUSTER_MODE = "standalone" ]]; then
     /opt/kafka/scripts/merge_config_properties.sh $temp_custom_connect_config $temp_operator_connect_config $connect_config_dir/connect-standalone.properties.merged
     /opt/kafka/scripts/merge_config_properties.sh $temp_operator_connect_config $connect_standalone_config $connect_config_dir/connect-standalone.properties.merged
     remove_comments_and_sort $connect_standalone_config
     
     echo "Starting Kafka Connect in Standalone mode"
     exec connect-standalone.sh $connect_standalone_config
-else [[ $KAFKA_CONNECT_MODE = "distributed" ]]
+else [[ $CONNECT_CLUSTER_MODE = "distributed" ]]
     update_advertised_host_name $temp_operator_connect_config
     /opt/kafka/scripts/merge_config_properties.sh  $temp_custom_connect_config $temp_operator_connect_config $connect_config_dir/connect-distributed.properties.merged
     /opt/kafka/scripts/merge_config_properties.sh  $temp_operator_connect_config $connect_distributed_config $connect_config_dir/connect-distributed.properties.merged
