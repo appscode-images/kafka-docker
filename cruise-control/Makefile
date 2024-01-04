@@ -1,7 +1,7 @@
 SHELL=/bin/bash -o pipefail
 
-REGISTRY      ?= ghcr.io/kubedb
-BIN           ?= cruise-control
+REGISTRY      ?= ghcr.io/appscode-images
+BIN           ?= kafka-cruise-control
 IMAGE         := $(REGISTRY)/$(BIN)
 TAG           ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
 CC_VERSION    ?= 2.5.131
