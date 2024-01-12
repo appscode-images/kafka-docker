@@ -1,15 +1,17 @@
 SHELL=/bin/bash -o pipefail
 
-REGISTRY      ?= ghcr.io/appscode-images
-BIN           ?= kafka-cruise-control
-IMAGE         := $(REGISTRY)/$(BIN)
-TAG           ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
-CC_VERSION    ?= 2.5.131
-CCUI_VERSION  ?= 0.4.0
+REGISTRY   ?= ghcr.io/appscode-images
+BIN        ?= kafka-connect-cluster
+IMAGE      := $(REGISTRY)/$(BIN)
+TAG        ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")
 
 DOCKER_PLATFORMS := linux/amd64 linux/arm64
 PLATFORM         ?= linux/$(subst x86_64,amd64,$(subst aarch64,arm64,$(shell uname -m)))
 VERSION          = $(TAG)_$(subst /,_,$(PLATFORM))
+KAFKA_VERSION    ?= 3.5.1
+SCALA_VERSION    ?= 2.13
+JMX_PROMETHEUS_AGENT_VERSION ?= 0.20.0
+KAFKA_REGISTRY   ?= https://archive.apache.org/dist/kafka
 
 container-%:
 	@$(MAKE) container \
@@ -28,8 +30,9 @@ all-push: $(addprefix push-, $(subst /,_,$(DOCKER_PLATFORMS)))
 .PHONY: container
 container:
 	@echo "container: $(IMAGE):$(VERSION)"
-	@docker buildx build --build-arg "CC_VERSION=$(CC_VERSION)" \
-                         --build-arg "CCUI_VERSION=$(CCUI_VERSION)" \
+	@docker buildx build --build-arg "KAFKA_VERSION=$(KAFKA_VERSION)" \
+                         --build-arg "SCALA_VERSION=$(SCALA_VERSION)" \
+                         --build-arg "KAFKA_REGISTRY=$(KAFKA_REGISTRY)" \
                          --platform $(PLATFORM) --load --pull -t $(IMAGE):$(VERSION) -f Dockerfile .
 	@echo
 

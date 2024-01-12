@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-REGISTRY   ?= ghcr.io/kubedb
+REGISTRY   ?= ghcr.io/appscode-images
 BIN        ?= kafka-kraft
 IMAGE      := $(REGISTRY)/$(BIN)
 TAG        ?= $(shell git describe --exact-match --abbrev=0 2>/dev/null || echo "")

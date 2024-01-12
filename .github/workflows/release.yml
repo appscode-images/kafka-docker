@@ -39,12 +39,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build kafka
+      - name: Build Kafka
         run: |
           cd kafka
           make release
 
-      - name: Build cruise-control
+      - name: Build Cruise-Control
         run: |
           cd cruise-control
+          make release
+
+      - name: Build Connect-Cluster
+        run: |
+          cd connect-cluster
           make release
