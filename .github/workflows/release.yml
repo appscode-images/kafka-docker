@@ -44,7 +44,14 @@ jobs:
           cd kafka
           make release
 
+      - name: Build Connect-Cluster
+        run: |
+          cd connect-cluster
+          make release
+
       - name: Build cruise-control
         run: |
           cd cruise-control
           make release
+
+
