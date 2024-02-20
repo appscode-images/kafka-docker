@@ -1,5 +1,5 @@
 # Build cruise control image to get the metrics reporter jar file
-FROM eclipse-temurin:17.0.9_9-jdk AS cruise_control
+FROM eclipse-temurin:17.0.10_7-jdk AS cruise_control
 ARG CC_VERSION
 
 # Fetch Cruise-Control binary
@@ -31,7 +31,7 @@ RUN set -eux \
     && ./gradlew clean \
     && ./gradlew jar :cruise-control-metric-reporter:jar
 
-FROM eclipse-temurin:17.0.9_9-jdk
+FROM eclipse-temurin:17.0.10_7-jdk
 
 ARG KAFKA_VERSION
 ARG SCALA_VERSION
@@ -52,8 +52,7 @@ RUN apt-get update && apt-get upgrade -y \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
- && rm -rf ${HOME}/bin/windows ${HOME}/site-docs \
- && rm ${HOME}/libs/zookeeper-*.jar
+ && rm -rf ${HOME}/bin/windows ${HOME}/site-docs
 
 # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
 # allows Kafka to find the reporter at runtime
@@ -63,7 +62,7 @@ COPY scripts/merge_custom_config.sh /opt/kafka/config/merge_custom_config.sh
 COPY ./kafka_server_jaas.conf /opt/kafka/config
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
-RUN wget -O /opt/jmx_exporter/jmx_prometheus_javaagent-0.20.0.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.2/jmx_prometheus_javaagent-0.17.2.jar
+RUN wget -O /opt/jmx_exporter/jmx_prometheus_javaagent-0.20.0.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.20.0/jmx_prometheus_javaagent-0.20.0.jar
 ENV EXTRA_ARGS="$EXTRA_ARGS -javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent-0.17.2.jar=56790:/opt/jmx_exporter/jmx-exporter-config.yaml"
 ENV KAFKA_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1"
 
