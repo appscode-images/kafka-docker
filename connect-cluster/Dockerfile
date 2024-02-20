@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17.0.7_7-jdk
+FROM eclipse-temurin:17.0.10_7-jdk
 
 ARG KAFKA_VERSION
 ARG SCALA_VERSION
