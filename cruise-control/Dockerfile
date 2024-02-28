@@ -1,5 +1,5 @@
 # --------------- Builder stage ---------------
-FROM eclipse-temurin:17.0.7_7-jdk AS cruisecontrol
+FROM eclipse-temurin:17.0.10_7-jdk AS cruisecontrol
 
 ARG CC_VERSION
 
@@ -34,7 +34,7 @@ RUN set -eux \
     && ./gradlew jar copyDependantLibs
 
 
-FROM node:20.3.1-buster as cruisecontrol_ui
+FROM node:20.11.1-buster as cruisecontrol_ui
 
 ARG CCUI_VERSION
 
@@ -57,19 +57,28 @@ RUN set -eux \
     && npm run build
 
 # --------------- Final stage ---------------
-FROM centos:7
-WORKDIR /opt/cruise-control
+FROM eclipse-temurin:17.0.10_7-jdk
 
-RUN yum -y install java-11-openjdk-devel && \
-    yum clean all -y
+ENV HOME=/opt/cruise-control
+WORKDIR $HOME
 
-COPY --from=cruisecontrol    /opt/cruise-control /opt/cruise-control
-COPY --from=cruisecontrol_ui /opt/cruise-control-ui /opt/cruise-control/cruise-control-ui
+RUN apt-get update \
+    && apt-get upgrade -y
+
+COPY --from=cruisecontrol /opt/cruise-control/cruise-control/build/libs/* /opt/cruise-control/cruise-control/build/libs/
+COPY --from=cruisecontrol /opt/cruise-control/config /opt/cruise-control/config
+COPY --from=cruisecontrol /opt/cruise-control/*.sh /opt/cruise-control/
+COPY --from=cruisecontrol /opt/cruise-control/cruise-control/build/dependant-libs /opt/cruise-control/cruise-control/build/dependant-libs
+COPY --from=cruisecontrol_ui /opt/cruise-control-ui/dist /opt/cruise-control/cruise-control-ui/dist
 
 COPY /scripts/entrypoint.sh /opt/cruise-control/config/entrypoint.sh
 COPY /scripts/merge_custom_config.sh /opt/cruise-control/config/merge_custom_config.sh
 
-#COPY /scripts/cruisecontrol.properties /opt/cruise-control/config/cruisecontrol.properties
+RUN groupadd -r -g 1001 cruise-control && \
+    useradd -m -d $HOME -s /bin/bash -u 1001 -r -g cruise-control cruise-control && \
+    chown -R cruise-control:cruise-control $HOME
+# Set the user to cruise-control
+USER cruise-control
 
 # Ensure Cruise Control writable for logs
 RUN chmod a+rw -R .
