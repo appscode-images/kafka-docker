@@ -113,7 +113,7 @@ if [[ $KAFKA_PASSWORD != "" ]]; then
   sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $CLIENTAUTHFILE
   sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $CLIENTAUTHFILE
   
-  sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $operator_config
+  sed -i "s/KAFKA_USER\>/"$KAFKA_USER"/g" $operator_config
   sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $operator_config
 fi
 
@@ -122,19 +122,15 @@ fi
 # The script replaces dots (.) in the keys with underscores (_) to make them valid environment variable names.
 while IFS='=' read -r key value
 do
-    key=$(echo $key | tr '.' '_')
+    key=$(echo "$key" | sed -e 's/\./_/g' -e 's/-/__/g')
     eval ${key}=\${value}
+    echo "$key=${value}"
 done < "$operator_config"
 
 # Set the value of CLUSTER_ID, ID and NODE environment variables.
 CLUSTER_ID=${cluster_id}
 ID=${HOSTNAME##*-}
 NODE=$(echo $HOSTNAME | rev | cut -d- -f1 --complement | rev )
-
-AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
-sed -i "s/\<KAFKA_USER\>/"$KAFKA_USER"/g" $AUTHFILE
-sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $AUTHFILE
-export KAFKA_OPTS="$KAFKA_OPTS -Djava.security.auth.login.config=$AUTHFILE"
 
 if [[ -n $advertised_listeners ]]; then
   old_advertised_listeners=$advertised_listeners
@@ -178,9 +174,9 @@ if [[ $process_roles = "controller" ]]; then
   remove_comments_and_sort $controller_config
 
   echo "Formatting controller properties"
-  kafka-storage.sh format -t "$CLUSTER_ID" -c /opt/kafka/config/kraft/controller.properties --ignore-formatted
+  kafka-storage.sh format -t "$CLUSTER_ID" -c $controller_config --add-scram "SCRAM-SHA-256=[name=$KAFKA_USER,password=$KAFKA_PASSWORD]" --ignore-formatted
   echo "Starting Kafka Server"
-  exec kafka-server-start.sh /opt/kafka/config/kraft/controller.properties
+  exec kafka-server-start.sh $controller_config
 
 elif [[ $process_roles = "broker" ]]; then
 
@@ -201,9 +197,8 @@ elif [[ $process_roles = "broker" ]]; then
   fi
 
   remove_comments_and_sort $broker_config
-
   echo "Formatting broker properties"
-  kafka-storage.sh format -t $CLUSTER_ID -c $broker_config --ignore-formatted
+  kafka-storage.sh format -t $CLUSTER_ID -c $broker_config  --add-scram "SCRAM-SHA-256=[name=$KAFKA_USER,password=$KAFKA_PASSWORD]" --ignore-formatted
   echo "Starting Kafka Server"
   exec kafka-server-start.sh $broker_config
 
@@ -227,7 +222,7 @@ else [[ $process_roles = "controller,broker" ]]
   remove_comments_and_sort $server_config
 
   echo "Formatting server properties"
-  kafka-storage.sh format -t $CLUSTER_ID -c $server_config --ignore-formatted
+  kafka-storage.sh format -t $CLUSTER_ID -c $server_config --add-scram "SCRAM-SHA-256=[name=$KAFKA_USER,password=$KAFKA_PASSWORD]" --ignore-formatted
   echo "Starting Kafka Server"
   exec kafka-server-start.sh $server_config
 fi

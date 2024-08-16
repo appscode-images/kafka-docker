@@ -44,7 +44,6 @@ LABEL name="kafka" version=${KAFKA_VERSION}
 LABEL org.opencontainers.image.source=https://github.com/kubedb/kafka-docker
 
 # ref: https://github.com/edenhill/kcat used for installing kafkacat cli
-# Install sudo to give permission 'custom config directory, metadata directory' for kafka user
 RUN apt-get update && apt-get upgrade -y \
  && apt-get install -y wget kafkacat nano \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ${KAFKA_REGISTRY}/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
@@ -59,7 +58,7 @@ RUN apt-get update && apt-get upgrade -y \
 COPY --from=cruise_control /opt/cruise-control/cruise-control-metrics-reporter/build/libs/cruise-control-metrics-reporter-${CC_VERSION}.jar /opt/kafka/libs/cruise-control-metrics-reporter.jar
 COPY scripts/entrypoint.sh /opt/kafka/config/entrypoint.sh
 COPY scripts/merge_custom_config.sh /opt/kafka/config/merge_custom_config.sh
-COPY ./kafka_server_jaas.conf /opt/kafka/config
+#COPY ./kafka_server_jaas.conf /opt/kafka/config
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
 RUN wget -O /opt/jmx_exporter/jmx_prometheus_javaagent-0.20.0.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.20.0/jmx_prometheus_javaagent-0.20.0.jar
