@@ -56,9 +56,8 @@ RUN apt-get update && apt-get upgrade -y \
 # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
 # allows Kafka to find the reporter at runtime
 COPY --from=cruise_control /opt/cruise-control/cruise-control-metrics-reporter/build/libs/cruise-control-metrics-reporter-${CC_VERSION}.jar /opt/kafka/libs/cruise-control-metrics-reporter.jar
-COPY scripts/entrypoint.sh /opt/kafka/config/entrypoint.sh
-COPY scripts/merge_custom_config.sh /opt/kafka/config/merge_custom_config.sh
-#COPY ./kafka_server_jaas.conf /opt/kafka/config
+COPY scripts/* /opt/kafka/config/
+
 # Add Prometheus JMX exporter agent
 COPY ./jmx-exporter-config.yaml /opt/jmx_exporter/jmx-exporter-config.yaml
 RUN wget -O /opt/jmx_exporter/jmx_prometheus_javaagent-0.20.0.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.20.0/jmx_prometheus_javaagent-0.20.0.jar
@@ -74,6 +73,7 @@ USER kafka
 
 RUN ["chmod", "+x", "/opt/kafka/config/entrypoint.sh"]
 RUN ["chmod", "+x", "/opt/kafka/config/merge_custom_config.sh"]
+RUN ["chmod", "+x", "/opt/kafka/config/launch.sh"]
 
 WORKDIR $HOME
 EXPOSE 9092 9093 9094 29092
