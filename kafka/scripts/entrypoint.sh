@@ -17,6 +17,8 @@ server_config="/opt/kafka/config/kraft/server.properties"
 server_custom_config="/opt/kafka/config/custom-config/server.properties"
 broker_custom_config="/opt/kafka/config/custom-config/broker.properties"
 controller_custom_config="/opt/kafka/config/custom-config/controller.properties"
+custom_log4j_config="/opt/kafka/config/custom-config/log4j.properties"
+custom_tools_log4j_config="/opt/kafka/config/custom-config/tools-log4j.properties"
 # Utility variables
 kafka_broker_max_id=1000
 
@@ -133,7 +135,7 @@ do
 done < "$operator_config"
 
 # Set the value of KAFKA_CLUSTER_ID and ID
-KAFKA_CLUSTER_ID=${KAFKA_CLUSTER_ID:-$cluster_id}
+export KAFKA_CLUSTER_ID=${KAFKA_CLUSTER_ID:-$cluster_id}
 ID=${HOSTNAME##*-}
 
 if [[ -n $advertised_listeners ]]; then
@@ -180,5 +182,21 @@ else [[ "$process_roles" = "controller,broker" ]]
 fi
 
 remove_comments_and_sort "$final_config"
+
+# Keeping this for backward compatibility
+if grep -Eqi '^sasl\.enabled\.mechanisms=.*plain.*' "$final_config"; then
+  AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
+  sed -i "s/KAFKA_USER\>/"$KAFKA_USER"/g" $AUTHFILE
+  sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $AUTHFILE
+  export KAFKA_OPTS="$KAFKA_OPTS -Djava.security.auth.login.config=$AUTHFILE"
+fi
+# If user has provided custom log4j configuration, it will be used
+if [[ -f "$custom_log4j_config" ]]; then
+  cp "$custom_log4j_config" /opt/kafka/config
+fi
+# If user has provided custom tools-log4j configuration, it will be used
+if [[ -f "$custom_tools_log4j_config" ]]; then
+  cp "$custom_tools_log4j_config" /opt/kafka/config
+fi
 
 /opt/kafka/config/launch.sh "$final_config"

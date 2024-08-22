@@ -79,15 +79,22 @@ for master_file_line in "${master_file_a[@]}"; do
               all_properties["$master_property_name"]="${all_properties["$master_property_name"]},${element}"
           fi
       done
-    elif [[ "$master_property_name" =~ ^[^=]+\.advertised\.listeners$ ]]; then
-      IFS=',' read -r -a adv_listener <<< "$master_property_value"
+    elif [[ "$master_property_name" =~ \.advertised\.listeners$ || "$master_property_name" =~ \.listeners$ ]]; then
+      IFS=',' read -r -a listener_array <<< "$master_property_value"
       id="${HOSTNAME##*-}"
-      length="${#adv_listener[@]}"
+      length="${#listener_array[@]}"
+      prefix="${master_property_name%%.*}"
+      key="${master_property_name#*.}"
+      if printf "%s\n" "${reserved_protocol[@]}" | grep -Fxq "$prefix"; then
+          echo "WARN: $master_property_name is a reserved protocol, continuing without setting it"
+          continue
+      fi
       if [ "$length" -le "$id" ]; then
         echo "WARN: $master_property_name is not set for broker id = $id, continuing without setting it"
         continue
       fi
-      all_properties["advertised.listeners"]="${all_properties["advertised.listeners"]},${adv_listener[${id}]}"
+      # Update the all_properties map with the determined key
+      all_properties["$key"]="${all_properties["$key"]},${listener_array[${id}]}"
     else
       all_properties["$master_property_name"]="$master_property_value"
     fi
