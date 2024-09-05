@@ -199,4 +199,40 @@ if [[ -f "$custom_tools_log4j_config" ]]; then
   cp "$custom_tools_log4j_config" /opt/kafka/config
 fi
 
+addKafkactlConfig() {
+  if [[ "$process_roles" == "controller" ]]; then
+    return
+  fi
+  kafkactl_config_path="/opt/kafka/.config/kafkactl/config.yml"
+  mkdir -p "$(dirname "$kafkactl_config_path")"
+  cat <<EOL > "$kafkactl_config_path"
+contexts:
+  default:
+    brokers:
+      - "localhost:9092"
+EOL
+  CLIENTAUTHFILE="/opt/kafka/config/clientauth.properties"
+  if [[ -f "$CLIENTAUTHFILE" ]]; then
+    cat <<EOL >> "$kafkactl_config_path"
+    sasl:
+      enabled: true
+      mechanism: plaintext
+      username: "$KAFKA_USER"
+      password: "$KAFKA_PASSWORD"
+EOL
+  fi
+  if grep -Ei "^security\.protocol=sasl_ssl" "$CLIENTAUTHFILE"; then
+    cat <<EOL >> "$kafkactl_config_path"
+    tls:
+      enabled: true
+      ca: "/var/private/ssl/ca.crt"
+      cert: "/var/private/ssl/tls.crt"
+      certKey: "/var/private/ssl/tls.key"
+      insecure: false
+EOL
+  fi
+  echo "current-context: default" >> "$kafkactl_config_path"
+}
+
+addKafkactlConfig
 /opt/kafka/config/launch.sh "$final_config"

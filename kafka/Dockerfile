@@ -43,15 +43,18 @@ ENV PATH=${PATH}:${HOME}/bin
 LABEL name="kafka" version=${KAFKA_VERSION}
 LABEL org.opencontainers.image.source=https://github.com/kubedb/kafka-docker
 
-# ref: https://github.com/edenhill/kcat used for installing kafkacat cli
 RUN apt-get update && apt-get upgrade -y \
- && apt-get install -y wget kafkacat nano \
+ && apt-get install -y wget nano \
  && wget -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz ${KAFKA_REGISTRY}/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && tar xfz /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -C /opt \
  && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
  && mv /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${HOME} \
  && rm -rf /opt/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz \
- && rm -rf ${HOME}/bin/windows ${HOME}/site-docs
+ && rm -rf ${HOME}/bin/windows ${HOME}/site-docs \
+ && latest_version=$(curl -s https://api.github.com/repos/deviceinsight/kafkactl/releases/latest | grep "tag_name" | cut -d '"' -f 4 | sed 's/^v//') \
+ && curl -LO "https://github.com/deviceinsight/kafkactl/releases/download/v${latest_version}/kafkactl_${latest_version}_linux_amd64.deb" \
+ && dpkg -i kafkactl_${latest_version}_linux_amd64.deb \
+ && rm kafkactl_${latest_version}_linux_amd64.deb
 
 # Placing the Cruise Control metric reporter jar into the /opt/kafka/libs/ directory of every Kafka broker
 # allows Kafka to find the reporter at runtime

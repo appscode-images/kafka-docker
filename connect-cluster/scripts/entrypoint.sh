@@ -4,6 +4,7 @@
 connect_config_dir="/opt/kafka/config"
 connect_standalone_config="/opt/kafka/config/connect-standalone.properties"
 connect_distributed_config="/opt/kafka/config/connect-distributed.properties"
+connect_log4j_config="/opt/kafka/config/connect-log4j.properties"
 # Set the directory where the Kafka Connect Operator configuration files are located 
 # Created by Kafka Connect Operator
 operator_connect_config_dir="/opt/kafka/config/connect-operator-config"
@@ -12,6 +13,7 @@ operator_connect_config="/opt/kafka/config/connect-operator-config/config.proper
 # Created by User using Kubernetes Secret (Connect .spec.configSecret)
 custom_connect_config_dir="/opt/kafka/config/connect-custom-config"
 custom_connect_config="/opt/kafka/config/connect-custom-config/config.properties"
+custom_connect_log4j_config="/opt/kafka/config/connect-custom-config/connect-log4j.properties"
 # Set kafka connect temporary configuration file
 temp_operator_connect_config="/opt/kafka/config/temp-operator-config.properties"
 temp_custom_connect_config="/opt/kafka/config/temp-custom-config.properties"
@@ -58,6 +60,11 @@ if [ -e $operator_connect_config ] ; then
 fi
 if [ -e $custom_connect_config ] ; then
     cp $custom_connect_config $temp_custom_connect_config
+fi
+
+# Copy custom_connect_log4j_config to connect_log4j_config
+if [ -e $custom_connect_log4j_config ] ; then
+    cp $custom_connect_log4j_config $connect_log4j_config
 fi
 
 # This script starts Kafka Connect in either standalone or distributed mode based on the value of CONNECT_CLUSTER_MODE environment variable.
