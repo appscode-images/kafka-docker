@@ -76,7 +76,7 @@ USER kafka
 
 RUN ["chmod", "+x", "/opt/kafka/config/entrypoint.sh"]
 RUN ["chmod", "+x", "/opt/kafka/config/merge_custom_config.sh"]
-RUN ["chmod", "+x", "/opt/kafka/config/launch.sh"]
+RUN ["chmod", "+x", "/opt/kafka/config/start.sh"]
 
 WORKDIR $HOME
 EXPOSE 9092 9093 9094 29092

@@ -235,4 +235,4 @@ EOL
 }
 
 addKafkactlConfig
-/opt/kafka/config/launch.sh "$final_config"
+/opt/kafka/config/start.sh "$final_config"
