@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}-ci
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Print version info
+        id: semver
+        run: |
+          cd kafka
+          make version
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build kafka
+        run: |
+          cd kafka
+          make all-container
+
+      - name: Build Connect-Cluster
+        run: |
+          cd connect-cluster
+          make all-container
+
+
