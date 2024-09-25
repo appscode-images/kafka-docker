@@ -41,11 +41,11 @@ jobs:
       - name: Build kafka
         run: |
           cd kafka
-          make container
+          make all-container
 
       - name: Build Connect-Cluster
         run: |
           cd connect-cluster
-          make container
+          make all-container
 
 
