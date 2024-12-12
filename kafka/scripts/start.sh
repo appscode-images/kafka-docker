@@ -18,6 +18,12 @@ sparse_scram_credentials() {
 add_scram_storage_args() {
   local -n scram="$1"
   local algo="$2"
+  algo_env="${algo//-/_}"
+  user_env="KAFKA_${algo_env}_USER"
+  pass_env="KAFKA_${algo_env}_PASSWORD"
+  if [[ -n "${!user_env}" && -n "${!pass_env}" ]]; then
+    scram["${!user_env}"]="${!pass_env}"
+  fi
   for username in "${!scram[@]}"; do
     storage_args+=("--add-scram" "$algo=[name=$username,password=${scram[$username]}]")
   done

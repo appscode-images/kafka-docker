@@ -73,6 +73,10 @@ RUN groupadd -r -g 1001 kafka && \
     useradd -m -d $HOME -s /bin/bash -u 1001 -r -g kafka kafka && \
     chown -R kafka:kafka $HOME
 
+# For OpenShift, we need to set the group to 0 and the directory permissions to g=u
+RUN chgrp -R 0 $HOME && \
+    chmod -R g=u $HOME
+
 USER kafka
 
 RUN ["chmod", "+x", "/opt/kafka/config/entrypoint.sh"]
