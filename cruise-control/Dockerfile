@@ -77,6 +77,9 @@ COPY /scripts/merge_custom_config.sh /opt/cruise-control/config/merge_custom_con
 RUN groupadd -r -g 1001 cruise-control && \
     useradd -m -d $HOME -s /bin/bash -u 1001 -r -g cruise-control cruise-control && \
     chown -R cruise-control:cruise-control $HOME
+# For OpenShift, we need to set the group to 0 and the directory permissions to g=u
+RUN chgrp -R 0 $HOME && \
+    chmod -R g=u $HOME
 # Set the user to cruise-control
 USER cruise-control
 

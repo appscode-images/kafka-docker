@@ -78,7 +78,7 @@ update_advertised_listeners() {
   modified_elements=()
   for element in "${elements[@]}"; do
         # Check if the element starts with the excluded prefix
-        if [[ "$element" == "BROKER://"* ]]; then
+        if [[ "$element" == "BROKER://"* || "$element" == "CONTROLLER://"* ]]; then
           modified_elements+=("${element/\/\//\/\/$prefix.}")
         else
           modified_elements+=("$element")  # Skip modification
@@ -167,6 +167,9 @@ if [[ "$process_roles" = "controller" ]]; then
   sed -i "s|"^log.dirs=$old_log_dirs"|"log.dirs=$log_dirs"|" "$operator_config"
   cat $operator_config $controller_config | awk -F= '!seen[$1]++' > "$controller_config.updated"
   mv "$controller_config.updated" "$final_config"
+  # We also need to format controller storage with `--add-scram` flag if broker is using SCRAM
+  export KAFKA_SCRAM_SHA_256_USER=${KAFKA_SCRAM_SHA_256_USER:-$KAFKA_USER}
+  export KAFKA_SCRAM_SHA_256_PASSWORD=${KAFKA_SCRAM_SHA_256_PASSWORD:-$KAFKA_PASSWORD}
 elif [[ "$process_roles" = "broker" ]]; then
   delete_cluster_metadata $ID
   echo "node.id=$ID" >> "$operator_config"
@@ -184,7 +187,10 @@ fi
 remove_comments_and_sort "$final_config"
 
 # Keeping this for backward compatibility
-if grep -Eqi '^sasl\.enabled\.mechanisms=.*plain.*' "$final_config"; then
+if grep -Eqi '^sasl\.enabled\.mechanisms=.*plain.*' "$final_config" && \
+   ! grep -Eq '^listener\.name\.broker\.plain\.sasl\.jaas\.config=.*' "$final_config" && \
+   ! grep -Eq '^listener\.name\.local\.plain\.sasl\.jaas\.config=.*' "$final_config" && \
+   ! grep -Eq '^listener\.name\.controller\.plain\.sasl\.jaas\.config=.*' "$final_config"; then
   AUTHFILE="/opt/kafka/config/kafka_server_jaas.conf"
   sed -i "s/KAFKA_USER\>/"$KAFKA_USER"/g" $AUTHFILE
   sed -i "s/\<KAFKA_PASSWORD\>/"$KAFKA_PASSWORD"/g" $AUTHFILE
@@ -220,8 +226,7 @@ EOL
       username: "$KAFKA_USER"
       password: "$KAFKA_PASSWORD"
 EOL
-  fi
-  if grep -Ei "^security\.protocol=sasl_ssl" "$CLIENTAUTHFILE"; then
+    if grep -Ei "^security\.protocol=sasl_ssl" "$CLIENTAUTHFILE"; then
     cat <<EOL >> "$kafkactl_config_path"
     tls:
       enabled: true
@@ -230,6 +235,7 @@ EOL
       certKey: "/var/private/ssl/tls.key"
       insecure: false
 EOL
+    fi
   fi
   echo "current-context: default" >> "$kafkactl_config_path"
 }
